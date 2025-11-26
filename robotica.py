@@ -60,10 +60,11 @@ class P3DX():
 
     def __init__(self, sim, robot_id, use_camera=False, use_lidar=False):
         self.sim = sim
+        # Handle del cuerpo principal del robot (para obtener pose 3D)
+        self.body = self.sim.getObject(f'/{robot_id}')
         print('*** getting handles', robot_id)
         self.left_motor = self.sim.getObject(f'/{robot_id}/leftMotor')
         self.right_motor = self.sim.getObject(f'/{robot_id}/rightMotor')
-        self.body = self.sim.getObject(f'/{robot_id}')  # ← NUEVO: handle del cuerpo del robot
         self.sonar = []
         for i in range(self.num_sonar):
             self.sonar.append(self.sim.getObject(f'/{robot_id}/ultrasonicSensor[{i}]'))
@@ -75,7 +76,7 @@ class P3DX():
     def get_sonar(self):
         readings = []
         for i in range(self.num_sonar):
-            res,dist,_,_,_ = self.sim.readProximitySensor(self.sonar[i])
+            res, dist, _, _, _ = self.sim.readProximitySensor(self.sonar[i])
             readings.append(dist if res == 1 else self.sonar_max)
         return readings
 
@@ -90,28 +91,25 @@ class P3DX():
         data = self.sim.getFloatArrayProperty(self.lidar, "signal.lidarData")
         return data
 
-    def set_speed(self, left_speed, right_speed):
-        self.sim.setJointTargetVelocity(self.left_motor, left_speed)
-        self.sim.setJointTargetVelocity(self.right_motor, right_speed)
-
     def get_pose2d(self):
-        """
-        Devuelve la pose 2D (x, y, theta) del robot en coordenadas de mundo.
+        """Devuelve la pose 2D (x, y, theta) del robot en coordenadas de mundo.
 
-        x, y  -> posición en metros en el plano (ejes X e Y de CoppeliaSim).
-        theta -> orientación en radianes, rotación alrededor del eje Z (yaw).
+        x, y  -> posición en metros sobre el plano (ejes X e Y del mundo).
+        theta -> orientación (yaw) en radianes, rotación alrededor del eje Z.
         """
-        # Posición del robot respecto al mundo
+        # Posición respecto al marco global
         pos = self.sim.getObjectPosition(self.body, self.sim.handle_world)
-        # Orientación (Euler) respecto al mundo: [alpha, beta, gamma] (x, y, z)
+        # Orientación en Euler respecto al marco global: [alpha, beta, gamma]
         ori = self.sim.getObjectOrientation(self.body, self.sim.handle_world)
 
         x = pos[0]
         y = pos[1]
-        theta = ori[2]  # giro alrededor del eje Z
-
+        theta = ori[2]
         return x, y, theta
 
+    def set_speed(self, left_speed, right_speed):
+        self.sim.setJointTargetVelocity(self.left_motor, left_speed)
+        self.sim.setJointTargetVelocity(self.right_motor, right_speed)
 
 
 def main(args=None):

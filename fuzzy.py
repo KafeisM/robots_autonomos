@@ -18,6 +18,8 @@ import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import time
+import math
+from mapping import OccupancyGrid
 
 # -------------------------------------------------------------------
 # --- Configuración del controlador de lógica borrosa
@@ -61,24 +63,27 @@ speed_diff['fuerte_izquierda'] = fuzz.trimf(speed_diff.universe, [1.0, 1.5, 2.0]
 # Prioridad más alta: evitar colisión frontal
 rule1 = ctrl.Rule(dist_center['cerca'], (base_speed['lenta'], speed_diff['fuerte_izquierda']))
 # Si el frente está despejado, evaluar laterales
-rule2 = ctrl.Rule(dist_center['lejos'] & dist_left['cerca'], (base_speed['rapida'], speed_diff['fuerte_derecha']))
-rule3 = ctrl.Rule(dist_center['lejos'] & dist_right['cerca'], (base_speed['rapida'], speed_diff['fuerte_izquierda']))
+rule2 = ctrl.Rule(dist_center['lejos'] & dist_left['cerca'],
+                  (base_speed['rapida'], speed_diff['fuerte_derecha']))
+rule3 = ctrl.Rule(dist_center['lejos'] & dist_right['cerca'],
+                  (base_speed['rapida'], speed_diff['fuerte_izquierda']))
 # Comportamiento por defecto: avanzar recto
-rule4 = ctrl.Rule(dist_center['lejos'] & dist_left['lejos'] & dist_right['lejos'], (base_speed['rapida'], speed_diff['recto']))
+rule4 = ctrl.Rule(dist_center['lejos'] & dist_left['lejos'] & dist_right['lejos'],
+                  (base_speed['rapida'], speed_diff['recto']))
 
 # 5. CREACIÓN DEL SISTEMA DE CONTROL
 avoid_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4])
 avoid_simulator = ctrl.ControlSystemSimulation(avoid_ctrl)
 
 # -------------------------------------------------------------------
-# --- Bucle principal de control del robot
+# --- Bucle principal de control del robot + construcción del mapa
 # -------------------------------------------------------------------
 
 def main(args=None):
     """
     Arranca la simulación en CoppeliaSim, lee los sensores de sonar del
     Pioneer P3DX, evalúa el controlador borroso y aplica las velocidades
-    calculadas en las ruedas. 
+    calculadas en las ruedas.
 
     Mapeo de los sonares a zonas:
     - izquierda:  sensores [5, 6, 7]
@@ -92,13 +97,28 @@ def main(args=None):
       rspeed = v_base + v_diff/2
     """
     coppelia = robotica.Coppelia()
-    robot = robotica.P3DX(coppelia.sim, 'PioneerP3DX')
+    # Activamos sonar y lidar para poder movernos y mapear
+    robot = robotica.P3DX(coppelia.sim, 'PioneerP3DX',
+                          use_camera=False,
+                          use_lidar=True)
     coppelia.start_simulation()
+
+    # --- Inicialización del mapa de ocupación ---
+    og = OccupancyGrid(
+        x_min=-5.0, x_max=5.0,
+        y_min=-5.0, y_max=5.0,
+        resolution=0.05
+    )
+
+    # Parámetros aproximados del LiDAR (ajusta a tu configuración real)
+    lidar_fov_min = -math.pi / 2   # -90 grados
+    lidar_fov_max = +math.pi / 2   # +90 grados
+    lidar_max_range = 5.0          # metros
 
     while coppelia.is_running():
         # 1) Lectura de sensores (valores normalizados 0..1)
         readings = robot.get_sonar()
-        
+
         # 2) Agregación por zonas usando el mínimo (el obstáculo más cercano)
         input_left = min(readings[5], readings[6], readings[7])
         input_center = min(readings[3], readings[4])
@@ -120,12 +140,33 @@ def main(args=None):
         # Modelo estable: v_base = velocidad media; v_diff = giro
         lspeed = v_base - v_diff / 2
         rspeed = v_base + v_diff / 2
-        
-        # 7) Aplicar velocidades y esperar un pequeño intervalo
+
+        # 7) Aplicar velocidades
         robot.set_speed(lspeed, rspeed)
+
+        # --- Actualizar mapa de ocupación con la pose y el LiDAR ---
+        # Pose 2D del robot en coordenadas de mundo
+        x, y, theta = robot.get_pose2d()
+        # Lecturas del LiDAR (lista/array de distancias en metros)
+        lidar_ranges = robot.get_lidar()
+
+        og.update_from_scan(
+            x, y, theta,
+            lidar_ranges,
+            angle_min=lidar_fov_min,
+            angle_max=lidar_fov_max,
+            max_range=lidar_max_range
+        )
+
+        # Pequeña pausa para no saturar la simulación
         time.sleep(0.05)
 
     coppelia.stop_simulation()
+
+    # Guardar el mapa final en disco para visualizarlo posteriormente
+    occ_prob = og.get_probability_map()
+    np.save("occupancy_map.npy", occ_prob)
+    print("[INFO] Mapa guardado en 'occupancy_map.npy'.")
 
 
 if __name__ == '__main__':
