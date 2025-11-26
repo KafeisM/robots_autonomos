@@ -63,6 +63,7 @@ class P3DX():
         print('*** getting handles', robot_id)
         self.left_motor = self.sim.getObject(f'/{robot_id}/leftMotor')
         self.right_motor = self.sim.getObject(f'/{robot_id}/rightMotor')
+        self.body = self.sim.getObject(f'/{robot_id}')  # ← NUEVO: handle del cuerpo del robot
         self.sonar = []
         for i in range(self.num_sonar):
             self.sonar.append(self.sim.getObject(f'/{robot_id}/ultrasonicSensor[{i}]'))
@@ -92,6 +93,25 @@ class P3DX():
     def set_speed(self, left_speed, right_speed):
         self.sim.setJointTargetVelocity(self.left_motor, left_speed)
         self.sim.setJointTargetVelocity(self.right_motor, right_speed)
+
+    def get_pose2d(self):
+        """
+        Devuelve la pose 2D (x, y, theta) del robot en coordenadas de mundo.
+
+        x, y  -> posición en metros en el plano (ejes X e Y de CoppeliaSim).
+        theta -> orientación en radianes, rotación alrededor del eje Z (yaw).
+        """
+        # Posición del robot respecto al mundo
+        pos = self.sim.getObjectPosition(self.body, self.sim.handle_world)
+        # Orientación (Euler) respecto al mundo: [alpha, beta, gamma] (x, y, z)
+        ori = self.sim.getObjectOrientation(self.body, self.sim.handle_world)
+
+        x = pos[0]
+        y = pos[1]
+        theta = ori[2]  # giro alrededor del eje Z
+
+        return x, y, theta
+
 
 
 def main(args=None):
