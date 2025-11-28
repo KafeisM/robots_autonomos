@@ -1,0 +1,17 @@
+1. Abrir coppelia desde terminal:
+cd ~/coppelia
+./coppeliaSim.sh
+
+2. Damos play en coppelia a la escena
+
+3. Abrimos terminal nueva y ejecutamos el controlador:
+source /opt/ros/humble/setup.bash
+python3 controlador_explorador.py 
+
+4. Abrimos terminal nueva y ejecutamos el mappeador: 
+source /opt/ros/humble/setup.bash
+python3 mi_mapeador.py
+
+5. Abrimos terminal nueva y visualizamos el mapa (a tiempo real) con:
+source /opt/ros/humble/setup.bash
+python3 ver_mapa.py
