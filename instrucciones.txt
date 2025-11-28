@@ -1,5 +1,8 @@
+################ NO SLAM ###############
 1. Abrir coppelia desde terminal:
-cd ~/coppelia
+source /opt/ros/humble/setup.bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/humble/lib
+cd ~/coppelia  # (O donde tengas la carpeta)
 ./coppeliaSim.sh
 
 2. Damos play en coppelia a la escena
@@ -15,3 +18,78 @@ python3 mi_mapeador.py
 5. Abrimos terminal nueva y visualizamos el mapa (a tiempo real) con:
 source /opt/ros/humble/setup.bash
 python3 ver_mapa.py
+
+################ SLAM ###############
+1. Abrir coppelia desde terminal:
+source /opt/ros/humble/setup.bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/humble/lib
+cd ~/coppelia  # (O donde tengas la carpeta)
+./coppeliaSim.sh
+
+2. Damos play en coppelia a la escena
+
+3. Abrimos terminal nueva y ejecutamos el controlador:
+source /opt/ros/humble/setup.bash
+python3 controlador_explorador.py 
+
+4. Abrimos terminal nueva y ejecutamos el mappeador (HAY QUE CREAR EL YAML): 
+source /opt/ros/humble/setup.bash
+ros2 launch slam_toolbox online_sync_launch.py slam_params_file:=./slam_balanced.yaml
+
+5. Abrimos terminal nueva y visualizamos el mapa (a tiempo real) con:
+source /opt/ros/humble/setup.bash
+python3 visualizador_slam.py
+
+
+COSAS A SABER:
+
+- Eliminar directorio WSL:
+rm -rf robots_autonomos/
+
+- Copiar directorio de Windows
+cp -r /mnt/c/Users/PepBiel/Documents/GitHub/robots_autonomos/ ~
+
+- Eliminar yaml:
+rm slam_balanced.yaml
+
+- Crear codigo y archivo yaml desde terminal:
+nano slam_balanced.yaml
+
+pegamos codigo:
+slam_toolbox:
+  ros__parameters:
+    # --- PLUGINS ---
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    
+    # --- FRAMES ---
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    
+    # --- GESTIÓN DE LA COLA (CRÍTICO PARA TU ERROR) ---
+    transform_timeout: 0.8
+    tf_buffer_duration: 30.0
+    minimum_time_interval: 0.2    # Procesar máx 5 veces/segundo (antes era 20)
+    stack_size_to_use: 40000000   # Más memoria para la cola
+    
+    # --- EQUILIBRIO FLUIDEZ / RENDIMIENTO ---
+    mode: mapping
+    map_update_interval: 1.0      # Refrescar mapa cada 1s (suficiente para ver trazada)
+    resolution: 0.05
+    max_laser_range: 5.0
+    
+    # --- EL SECRETO DEL TRAZADO ---
+    # 5cm es muy poco (se ve fluido), pero evita procesar cuando está parado
+    minimum_travel_distance: 0.05 
+    minimum_travel_heading: 0.05  
+    
+    use_scan_matching: true
+    use_scan_barycenter: true
+
+Pulsa Ctrl + O.
+Pulsa Enter para confirmar.
+Pulsa Ctrl + X para salir.
