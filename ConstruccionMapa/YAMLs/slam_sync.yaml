@@ -1,0 +1,33 @@
+slam_toolbox:
+  ros__parameters:
+    # --- PLUGINS ---
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    
+    # --- FRAMES ---
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    
+    # --- GESTIÓN DE LA COLA (CRÍTICO PARA TU ERROR) ---
+    transform_timeout: 0.8
+    tf_buffer_duration: 30.0
+    minimum_time_interval: 0.2    # Procesar máx 5 veces/segundo (antes era 20)
+    stack_size_to_use: 40000000   # Más memoria para la cola
+    
+    # --- EQUILIBRIO FLUIDEZ / RENDIMIENTO ---
+    mode: mapping
+    map_update_interval: 1.0      # Refrescar mapa cada 1s (suficiente para ver trazada)
+    resolution: 0.05
+    max_laser_range: 5.0
+    
+    # --- EL SECRETO DEL TRAZADO ---
+    # 5cm es muy poco (se ve fluido), pero evita procesar cuando está parado
+    minimum_travel_distance: 0.05 
+    minimum_travel_heading: 0.05  
+    
+    use_scan_matching: true
+    use_scan_barycenter: true

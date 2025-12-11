@@ -34,8 +34,9 @@ python3 controlador_explorador.py
 
 4. Abrimos terminal nueva y ejecutamos el mappeador (HAY QUE CREAR EL YAML): 
 source /opt/ros/humble/setup.bash
-ros2 launch slam_toolbox online_sync_launch.py slam_params_file:=./slam_balanced.yaml
-ros2 launch slam_toolbox online_async_launch.py slam_params_file:=./mapper_params_online_async.yaml
+ros2 launch slam_toolbox online_sync_launch.py slam_params_file:=./slam\_sync.yaml
+                                            o
+ros2 launch slam_toolbox online_async_launch.py slam_params_file:=./slam\_async.yaml
 
 5. Abrimos terminal nueva y visualizamos el mapa (a tiempo real) con:
 source /opt/ros/humble/setup.bash

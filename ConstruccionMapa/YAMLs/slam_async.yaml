@@ -1,0 +1,47 @@
+slam_toolbox:
+  ros__parameters:
+
+    # --- PLUGINS DE SOLUCIÓN MATEMÁTICA ---
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    
+    # --- CONFIGURACIÓN DE ROS 2 ---
+    # Importante: Como tu LUA usa os.time(), esto debe ser false 
+    use_sim_time: false
+    
+    # --- FRAMES Y TÓPICOS (CRÍTICO) ---
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    
+    # --- GESTIÓN DE MAPEO ---
+    mode: mapping 
+    map_update_interval: 1.0
+    resolution: 0.05
+    max_laser_range: 20.0 # Ajustado a tu sensor
+    
+    # --- RENDIMIENTO Y FILTRADO ---
+    # Esto evita que el mapa se emborrone si el robot vibra estando quieto
+    minimum_time_interval: 0.2
+    transform_timeout: 0.5
+    tf_buffer_duration: 30.0
+    stack_size_to_use: 40000000
+    
+    # --- CALIDAD DE MAPA ---
+    # El robot debe moverse 10cm o girar 0.1 rad para actualizar el mapa
+    # Esto limpia mucho el ruido de la simulación
+    minimum_travel_distance: 0.1
+    minimum_travel_heading: 0.1
+    
+    # --- CORRELACIÓN ---
+    use_scan_matching: true
+    use_scan_barycenter: true
+    
+    # --- CIERRE DE BUCLES (LOOP CLOSURE) ---
+    # Opcional: ayuda a corregir el mapa si vuelves a pasar por el mismo sitio
+    do_loop_closing: true
+    loop_search_space_smear: 0.5
+    loop_match_minimum_chain_size: 10
